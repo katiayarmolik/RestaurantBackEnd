@@ -14,6 +14,7 @@ builder.Services.AddDbContext<RestaurantDbContext>(options =>
 
 // Register services
 builder.Services.AddScoped<IDishService, DishService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
