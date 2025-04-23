@@ -18,159 +18,83 @@ public class OrderController : ControllerBase
     }
 
     [HttpGet]
-    [Route("")]
-    public async Task<ActionResult<List<OrderResponse>>> GetAllOrders()
+    public async Task<IActionResult> GetAllOrders(CancellationToken cancellationToken)
     {
-        var result = await _orderService.GetAllOrdersAsync();
-        
+        var result = await _orderService.GetAllOrdersAsync(cancellationToken);
         return result.Match(
-            orders => Ok(orders.Select(o => new OrderResponse(
-                o.Id,
-                o.Waiter,
-                o.CreatedAt,
-                o.OrderDishes.Select(od => new OrderDishResponse(
-                    od.Dish.Id,
-                    od.Dish.Name,
-                    od.Dish.Price
-                )).ToList()
-            ))),
-            errors => Problem(statusCode: StatusCodes.Status500InternalServerError, detail: errors.First().Description)
+            orders => Ok(orders),
+            errors => Problem(errors)
         );
     }
 
-    [HttpGet]
-    [Route("{id}")]
-    public async Task<ActionResult<OrderResponse>> GetOrder(int id)
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetOrderById(int id, CancellationToken cancellationToken)
     {
-        var result = await _orderService.GetOrderByIdAsync(id);
-        
+        var result = await _orderService.GetOrderByIdAsync(id, cancellationToken);
         return result.Match(
-            order => Ok(new OrderResponse(
-                order.Id,
-                order.Waiter,
-                order.CreatedAt,
-                order.OrderDishes.Select(od => new OrderDishResponse(
-                    od.Dish.Id,
-                    od.Dish.Name,
-                    od.Dish.Price
-                )).ToList()
-            )),
-            errors => Problem(statusCode: StatusCodes.Status404NotFound, detail: errors.First().Description)
+            order => Ok(order),
+            errors => Problem(errors)
         );
     }
 
     [HttpPost]
-    [Route("")]
-    public async Task<ActionResult<OrderResponse>> CreateOrder(CreateOrderRequest request)
+    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request, CancellationToken cancellationToken)
     {
         var order = new Order
         {
-            Waiter = request.Waiter,
-            CreatedAt = DateTime.UtcNow
+            Waiter = request.Waiter
         };
 
-        var result = await _orderService.CreateOrderAsync(order);
-        
+        var result = await _orderService.CreateOrderAsync(order, cancellationToken);
         return result.Match(
-            order => CreatedAtAction(nameof(GetOrder), new { id = order.Id }, new OrderResponse(
-                order.Id,
-                order.Waiter,
-                order.CreatedAt,
-                order.OrderDishes.Select(od => new OrderDishResponse(
-                    od.Dish.Id,
-                    od.Dish.Name,
-                    od.Dish.Price
-                )).ToList()
-            )),
-            errors => Problem(statusCode: StatusCodes.Status400BadRequest, detail: errors.First().Description)
+            createdOrder => CreatedAtAction(nameof(GetOrderById), new { id = createdOrder.Id }, createdOrder),
+            errors => Problem(errors)
         );
     }
 
-    [HttpPut]
-    [Route("{id}")]
-    public async Task<ActionResult<OrderResponse>> UpdateOrder(int id, UpdateOrderRequest request)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateOrder(int id, [FromBody] UpdateOrderRequest request, CancellationToken cancellationToken)
     {
         var order = new Order
         {
             Id = id,
-            Waiter = request.Waiter,
-            CreatedAt = DateTime.UtcNow
+            Waiter = request.Waiter
         };
 
-        var result = await _orderService.UpdateOrderAsync(order);
-        
+        var result = await _orderService.UpdateOrderAsync(id, order, cancellationToken);
         return result.Match(
-            order => Ok(new OrderResponse(
-                order.Id,
-                order.Waiter,
-                order.CreatedAt,
-                order.OrderDishes.Select(od => new OrderDishResponse(
-                    od.Dish.Id,
-                    od.Dish.Name,
-                    od.Dish.Price
-                )).ToList()
-            )),
-            errors => Problem(statusCode: StatusCodes.Status404NotFound, detail: errors.First().Description)
+            updatedOrder => Ok(updatedOrder),
+            errors => Problem(errors)
         );
     }
 
-    [HttpDelete]
-    [Route("{id}")]
-    public async Task<IActionResult> DeleteOrder(int id)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteOrder(int id, CancellationToken cancellationToken)
     {
-        var result = await _orderService.DeleteOrderAsync(id);
-        
-        return result.Match<IActionResult>(
-            deleted => NoContent(),
-            errors => Problem(statusCode: StatusCodes.Status404NotFound, detail: errors.First().Description)
+        var result = await _orderService.DeleteOrderAsync(id, cancellationToken);
+        return result.Match(
+            _ => NoContent(),
+            errors => Problem(errors)
         );
     }
 
-    [HttpPost]
-    [Route("{orderId}/dishes/{dishId}")]
-    public async Task<ActionResult<OrderResponse>> AddDishToOrder(int orderId, int dishId)
+    [HttpPost("{orderId}/dishes/{dishId}")]
+    public async Task<IActionResult> AddDishToOrder(int orderId, int dishId, CancellationToken cancellationToken)
     {
-        var result = await _orderService.AddDishToOrderAsync(orderId, dishId);
-        
+        var result = await _orderService.AddDishToOrderAsync(orderId, dishId, cancellationToken);
         return result.Match(
-            order => Ok(new OrderResponse(
-                order.Id,
-                order.Waiter,
-                order.CreatedAt,
-                order.OrderDishes.Select(od => new OrderDishResponse(
-                    od.Dish.Id,
-                    od.Dish.Name,
-                    od.Dish.Price
-                )).ToList()
-            )),
-            errors => Problem(
-                statusCode: errors.First().Type == ErrorType.NotFound ? StatusCodes.Status404NotFound : StatusCodes.Status400BadRequest,
-                detail: errors.First().Description
-            )
+            order => Ok(order),
+            errors => Problem(errors)
         );
     }
 
-    [HttpDelete]
-    [Route("{orderId}/dishes/{dishId}")]
-    public async Task<ActionResult<OrderResponse>> RemoveDishFromOrder(int orderId, int dishId)
+    [HttpDelete("{orderId}/dishes/{dishId}")]
+    public async Task<IActionResult> RemoveDishFromOrder(int orderId, int dishId, CancellationToken cancellationToken)
     {
-        var result = await _orderService.RemoveDishFromOrderAsync(orderId, dishId);
-        
+        var result = await _orderService.RemoveDishFromOrderAsync(orderId, dishId, cancellationToken);
         return result.Match(
-            order => Ok(new OrderResponse(
-                order.Id,
-                order.Waiter,
-                order.CreatedAt,
-                order.OrderDishes.Select(od => new OrderDishResponse(
-                    od.Dish.Id,
-                    od.Dish.Name,
-                    od.Dish.Price
-                )).ToList()
-            )),
-            errors => Problem(
-                statusCode: errors.First().Type == ErrorType.NotFound ? StatusCodes.Status404NotFound : StatusCodes.Status400BadRequest,
-                detail: errors.First().Description
-            )
+            order => Ok(order),
+            errors => Problem(errors)
         );
     }
 } 

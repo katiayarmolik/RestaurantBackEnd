@@ -1,5 +1,6 @@
 using ErrorOr;
 using Microsoft.EntityFrameworkCore;
+using Models;
 using RestaurantApi.Data;
 using RestaurantApi.Entities;
 
@@ -34,39 +35,34 @@ public class OrderService : IOrderService
         {
             return Error.NotFound("Order not found");
         }
-
+        
         return order;
     }
 
     public async Task<ErrorOr<Order>> CreateOrderAsync(Order order, CancellationToken cancellationToken = default)
     {
+        order.CreatedAt = DateTime.UtcNow;
         _context.Orders.Add(order);
         await _context.SaveChangesAsync(cancellationToken);
         return order;
     }
 
-    public async Task<ErrorOr<Order>> UpdateOrderAsync(Order order, CancellationToken cancellationToken = default)
+    public async Task<ErrorOr<Order>> UpdateOrderAsync(int id, Order order, CancellationToken cancellationToken = default)
     {
-        var existingOrder = await _context.Orders
-            .Include(o => o.OrderDishes)
-            .FirstOrDefaultAsync(o => o.Id == order.Id, cancellationToken);
-        
+        var existingOrder = await _context.Orders.FindAsync(new object[] { id }, cancellationToken);
         if (existingOrder is null)
         {
             return Error.NotFound("Order not found");
         }
 
         existingOrder.Waiter = order.Waiter;
-        existingOrder.CreatedAt = order.CreatedAt;
-
         await _context.SaveChangesAsync(cancellationToken);
         return existingOrder;
     }
 
-    public async Task<ErrorOr<Deleted>> DeleteOrderAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<ErrorOr<Order>> DeleteOrderAsync(int id, CancellationToken cancellationToken = default)
     {
         var order = await _context.Orders.FindAsync(new object[] { id }, cancellationToken);
-        
         if (order is null)
         {
             return Error.NotFound("Order not found");
@@ -74,7 +70,7 @@ public class OrderService : IOrderService
 
         _context.Orders.Remove(order);
         await _context.SaveChangesAsync(cancellationToken);
-        return Result.Deleted;
+        return order;
     }
 
     public async Task<ErrorOr<Order>> AddDishToOrderAsync(int orderId, int dishId, CancellationToken cancellationToken = default)

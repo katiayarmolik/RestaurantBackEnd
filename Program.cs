@@ -16,22 +16,21 @@ builder.Services.AddDbContext<RestaurantDbContext>(options =>
 builder.Services.AddScoped<IDishService, DishService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+// Configure Swagger only in Development
+if (builder.Environment.IsDevelopment())
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Restaurant API", Version = "v1" });
-});
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+}
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseSwagger();
-app.UseSwaggerUI(c => 
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Restaurant API v1");
-    c.RoutePrefix = string.Empty; // This will make Swagger UI the root page
-});
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 // Configure the URLs
 app.Urls.Clear(); // Clear any existing URLs
